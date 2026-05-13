@@ -27,6 +27,12 @@ jobs:
       - name: Setup Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v3
 
+      - name: Verify GCloud Auth
+        run: |
+          gcloud auth list
+          gcloud config list
+          gcloud projects list
+
       - name: Configure Docker
         run: |
           gcloud auth configure-docker asia-south1-docker.pkg.dev --quiet
