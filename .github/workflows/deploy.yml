@@ -1,0 +1,47 @@
+name: Deploy Weather App to GCP
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: ${{ secrets.GCP_REGION }}
+  REPOSITORY: weather-app-repo
+  SERVICE: weather-app
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Authenticate to GCP
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+    - name: Setup Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Configure Docker
+      run: gcloud auth configure-docker $REGION-docker.pkg.dev
+
+    - name: Build Docker Image
+      run: |
+        docker build -t $REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/weather-app:${{ github.sha }} .
+
+    - name: Push Docker Image
+      run: |
+        docker push $REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/weather-app:${{ github.sha }}
+
+    - name: Deploy to Cloud Run
+      run: |
+        gcloud run deploy $SERVICE \
+          --image $REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/weather-app:${{ github.sha }} \
+          --platform managed \
+          --region $REGION \
+          --allow-unauthenticated
